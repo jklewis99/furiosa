@@ -1,6 +1,0 @@
-clip.py:
-    FuriosaVideoClip:
-        initialization: Complete; 2-3 seconds
-        trim: Complete
-            - with subclip method 1-2 seconds, 
-            + with set_start/set_end 0-0.0001 seconds

@@ -1,4 +1,4 @@
-PyQt5
-moviepy
+--upgrade google-api-python-client
+--upgrade google-auth-oauthlib google-auth-httplib2
 numpy
-opencv-python
+pandas
