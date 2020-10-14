@@ -29,10 +29,10 @@ def get_youtube_video_statistics(youtube_id):
         id=youtube_id
     )
     response = request.execute()['items'][0]
-    print(type(response))
+    # print(type(response))
     return {
         "youtube_id": response['id'],
-        "title": response['snippet']['title'],
+        "title": refactor_escape_characters(response['snippet']['title']),
         "channelTitle": response['snippet']['channelTitle'],
         "channelId": response['snippet']['channelId'],
         "description": response['snippet']['description'],
@@ -101,7 +101,7 @@ def search_youtube(title):
     response = request.execute()
 
     for video in response['items']:
-        print(video['snippet']['title'])
+        # print(video['snippet']['title'])
         if "trailer" in video['snippet']['title'].lower():
             trailer_info = get_youtube_video_statistics(video['id']['videoId'])
             return trailer_info
@@ -136,6 +136,10 @@ def refactor_escape_characters(string):
 
 
 def compare_api_responses():
+    '''
+    though tmdb does have a video with which to associate the movie
+    the video associated is not always the most popular.
+    '''
     import pandas as pd
     from tmdbAPIrequests import appended_movie_info
     movie_ids = pd.read_csv("movies-from-2010s.csv")[['tmdb_id', 'title']].head(10)
@@ -154,14 +158,21 @@ def compare_api_responses():
     print(f"{tmdb:20} | {yt:20}" )
     for t, y in zip(ids_from_tmdb, ids_from_youtube):
         ugh = y['youtube_id'] if y['youtube_id'] is not None else "No Id"
-        print(ugh)
+        
         try:
             print(f"{t:20} | {ugh:20}" )
         except:
             print("failed")
         if t == y:
             count_correct += 1
-    tmdb_stats = [get_youtube_video_statistics(response) for response in ids_from_tmdb]
+    tmdb_stats = []
+    for response in ids_from_tmdb:
+        try:
+            tmdb_stats.append(get_youtube_video_statistics(response))
+        except:
+            tmdb_stats.append(None)
+            print("ERROR at key:", response)
+
     print("====================================================")
     print(f"\n{tmdb:20} | {yt:20}" )
     for t, y in zip(tmdb_stats, ids_from_youtube):

@@ -33,9 +33,6 @@ def update_dataframe(series_object, total):
         print(COUNT, "/", total)
     return series_object
 
-# print(links.head(5))
-# 
-
 def main():
     start = datetime.datetime.now()
     movies = pd.read_csv('data/ml-25m/movies.csv')
@@ -53,7 +50,7 @@ def main():
     movies_2010s = movies.copy().loc[movies['year'] >= 2010]
     total = movies_2010s.shape[0]
     movies_2010s = movies_2010s.apply(lambda x: update_dataframe(x, total), axis=1)
-    movies_2010s.to_csv("movies-from-2010s.csv")
+    movies_2010s.to_csv("movies-from-2010s.csv", index=False)
     print("Time to request and build:", datetime.datetime.now() - start)
 
 if __name__ == '__main__':
