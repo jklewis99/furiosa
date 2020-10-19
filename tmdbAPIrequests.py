@@ -31,32 +31,24 @@ def get_by_movie_id(movie_id):
     }
 
 def appended_movie_info(movie_id):
-    # appendn_to_response creates a new key for each appended response
-    request = f"{URL}{movie_id}?api_key={TMDB_API_KEY}&append_to_response=credits,videos,reviews"
+    # append_to_response creates a new key for each appended response
+    request = f"{URL}{movie_id}?api_key={TMDB_API_KEY}&append_to_response=credits,release_dates"
     response = requests.get(request)
     response = response.json()
 
-    # for json_object in response:
-    #     if json_object == 'credits':
-    #         print("\n=========Credits=========\n")
-    #         print(response['credits'])
-    #     elif json_object  == 'videos':
-    #         print("\n=========Videos=========\n")
-    #         print(response['videos'])
-    #     elif json_object  == 'reviews':
-    #         print("\n=========Reviews=========\n")
-    #         print(response['reviews'])
+    # get the release date for the United States theatrical release
+    release_date_usa = None
+    for releases in response['release_dates']['results']:
+        if releases['iso_3166_1'] == "US":
+            for release in releases['release_dates']:
+                if release['type'] == 3:
+                    release_date_usa = release['release_date']
 
-    return response['videos']['results'][0]['key'] if len(response['videos']['results']) > 0 else None
-    # return {
-    #     "credits": response['credits'],
+    return {
+        "credits": response['credits'],
+        "release_date": release_date_usa
+    }
 
-    # }
-
-def main():
-    # test for the movie SHutter Island: 74458
-    appended_movie_info(23023)
-
-
-main()
-
+def get_reviews(movie_id):
+    # TODO: find different source for reviews, as the TMDB reviews are limited
+    pass
