@@ -6,3 +6,4 @@ opencv-python
 --upgrade google-auth-oauthlib google-auth-httplib2
 numpy
 pandas
+textdistance

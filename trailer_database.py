@@ -1,13 +1,15 @@
 import pandas as pd
-from youtubeAPIrequests import generate_youtube_statistics
+from youtubeAPIrequests import refactor_escape_characters, search_youtube
+from similarity_score import get_similarity_score
 import datetime
 
 # 10000 quota limit from youtube, 
 # 1000 quota cost for query, 
 # 1 quota cost per specific video search
-# buffer of 1
-VIDEOS_LIMIT_PER_DAY = 10000 / (100 + 5) - 1
-# VIDEOS_LIMIT_PER_DAY = 72
+# buffer of 10
+# VIDEOS_LIMIT_PER_DAY = int(10000 / (100 + 5) - 10)
+VIDEOS_LIMIT_PER_DAY = 80
+# VIDEOS_LIMIT_PER_DAY = 3
 
 def main():
     start = datetime.datetime.now()
@@ -16,18 +18,19 @@ def main():
     movies_2010s = movies_2010s.loc[movies_2010s['revenue'] > 0] # get revenues that are greater than 0
     num_votes_required = movies_2010s['vote_count'].quantile(0.8)
     watched_movies_2010s = movies_2010s.copy().loc[movies_2010s['vote_count'] >= num_votes_required]
-    watched_movies_2010s_tmdb_ids = watched_movies_2010s['tmdb_id'].values
+    movie_tmdb_ids = watched_movies_2010s['tmdb_id'].values
+    movie_descriptions = watched_movies_2010s['overview'].values.tolist()
     watched_movies_2010s.set_index('tmdb_id', inplace=True)
     release_dates_2010s = pd.read_csv("dbs/release_dates_2010s.csv").set_index('tmdb_id')
     cast_2010s = pd.read_csv("dbs/cast_2010s.csv")
     crew_2010s = pd.read_csv("dbs/crew_2010s.csv")
     
     trailers = []
-
+    errors = []
     for i in range(VIDEOS_LIMIT_PER_DAY): # because of query limits, we must parse ths querying across multiple days
         # we need to generate a list of keywords for our youtube query filtering
         keywords = []
-        tmdb_id = watched_movies_2010s_tmdb_ids[i]
+        tmdb_id = movie_tmdb_ids[i]
         print(f"Iteration: {i} +++++ TMDB_ID: {tmdb_id}")
         release_date = release_dates_2010s.loc[tmdb_id, ['month_released', 'day_released',
             'year_released']]
@@ -42,13 +45,18 @@ def main():
         keywords.extend(actor_and_characters['character'].values.tolist())
         keywords.extend(directors)
         # now that we have our keywords and dates, we can query YouTube
-        results = generate_youtube_statistics(tmdb_id, watched_movies_2010s.at[tmdb_id, 'title'],
-            release_date, keywords)
-        results = [vars(youtube_video) for youtube_video in results]
-        trailers.extend(results)
+        title = watched_movies_2010s.at[tmdb_id, 'title']
+        try:
+            youtube_response = search_youtube(tmdb_id, title)
+            results = get_similarity_score(title, youtube_response, movie_descriptions[i], keywords)
+            results = [vars(youtube_video) for youtube_video in results]
+            trailers.extend(results)
+        except Exception as e:
+            errors.append(f"Error at tmdb_id={tmdb_id}" + str(e))
 
     pd.DataFrame(trailers).to_csv("dbs/trailers_2010s.csv", index=False)
-
+    errors_file = open('errors/trailer-database-errors.txt', 'w+')
+    errors_file.writelines(errors)
     print(f"TIME TO PROCESS ({VIDEOS_LIMIT_PER_DAY} Movies):", datetime.datetime.now()-start)
 
 def to_rfc3339(release_date):

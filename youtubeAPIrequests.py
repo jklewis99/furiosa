@@ -3,16 +3,6 @@ import googleapiclient.errors
 from similarity_score import get_similarity_score
 from youtube_video import YouTubeVideo
 
-def generate_youtube_statistics(tmdb_id, title, release_date, keywords):
-    query_results_data = search_youtube(tmdb_id, title, release_date)
-    try:
-        results = get_similarity_score(title, query_results_data, keywords)
-    except:
-        print(f"We have failed within get similarity score for tmdb_id {tmdb_id}")
-        print("returning empty array")
-        results = []
-    return results
-
 def get_youtube_video_statistics(tmdb_id, youtube_ids):
     '''
     helper method to search youtube for a specific video by a video's
@@ -44,7 +34,8 @@ def get_youtube_video_statistics(tmdb_id, youtube_ids):
     # print(type(response))
     return [YouTubeVideo(response['id'], refactor_escape_characters(response['snippet']['title']),
         response['snippet']['channelTitle'], response['snippet']['channelId'],
-        response['snippet']['description'], response['snippet']['tags'],
+        response['snippet']['description'], response['snippet']['publishedAt'],
+        response['snippet']['tags'] if 'tags' in response['snippet'] else [],
         response['statistics']['viewCount'] if 'viewCount' in response['statistics'] else 0, 
         response['statistics']['likeCount'] if 'likeCount' in response['statistics'] else 0,
         response['statistics']['dislikeCount'] if 'dislikeCount' in response['statistics'] else 0, 
@@ -52,7 +43,7 @@ def get_youtube_video_statistics(tmdb_id, youtube_ids):
         tmdb_id)
         for response in response_items]
 
-def search_youtube(tmdb_id, title, release_date):
+def search_youtube(tmdb_id, title, release_date=None):
     '''
     method to search youtube with the query: "title + ' trailer'".
     This query will cost 100 units so searches will need to be
@@ -77,6 +68,9 @@ def search_youtube(tmdb_id, title, release_date):
     
     youtube = googleapiclient.discovery.build(
         api_service_name, api_version) #, credentials=credentials)
+
+    if release_date is None:
+        release_date = "2020-10-22T00:00:00Z"
 
     # TODO: validate response
     #       currently, this approach is prone to errors
@@ -104,7 +98,7 @@ def search_youtube(tmdb_id, title, release_date):
 
     request = youtube.search().list(
         part="snippet",
-        maxResults=5,
+        maxResults=6,
         type="video",           # exclude channels and playlists
         videoDuration="short",  # attempt to not get film analysis
         q=title + " trailer",   # search for trailers of this movie
@@ -114,11 +108,6 @@ def search_youtube(tmdb_id, title, release_date):
     response = request.execute()
     youtube_ids = [video['id']['videoId'] for video in response['items']]
     return get_youtube_video_statistics(tmdb_id, youtube_ids)
-    # for youtube_id in youtube_ids:
-    #     # print(video['snippet']['title'])
-    #     if "trailer" in video['snippet']['title'].lower():
-    #         trailer_info = get_youtube_video_statistics(video['id']['videoId'])
-    #         return trailer_info
 
 def refactor_escape_characters(string):
     '''
