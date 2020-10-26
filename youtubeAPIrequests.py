@@ -15,9 +15,7 @@ def get_youtube_video_statistics(tmdb_id, youtube_ids):
 
     Return
     ==========
-    a list of dictionary objects with the keys "youtube_id", "title",
-    "channelTitle", "channelId", "description", "tags", "viewCount",
-    "likeCount", "dislikeCount", "commentCount"
+    a list of YouTubeVideo objects
     '''
     
     api_service_name = "youtube"
@@ -59,9 +57,7 @@ def search_youtube(tmdb_id, title, release_date=None):
 
     Return
     ==========
-    a dictionary object with the keys "youtube_id", "title",
-    "channelTitle", "channelId", "description", "tags", "viewCount",
-    "likeCount", "dislikeCount", "commentCount"
+    a list of YouTubeVideo objects
     '''
     api_service_name = "youtube"
     api_version = "v3"
@@ -71,30 +67,6 @@ def search_youtube(tmdb_id, title, release_date=None):
 
     if release_date is None:
         release_date = "2020-10-22T00:00:00Z"
-
-    # TODO: validate response
-    #       currently, this approach is prone to errors
-    #       sorting by number of views doesn't get correct video
-    #       but I want the video with most views, but even taking
-    #       away this parameter is sorting by relevance (default),
-    #       the query still returns inaccurate trailers
-    
-    # Searching by order="viewCount":
-    #   1. Rise of the Guardians: Official Trailer 2
-    #   2. Rise of the Guardians: Official Trailer
-    #   3. The Tooth Fairy | Official Trailer (HD) | 20th Century FOX
-    #   4. Hellboy 2: The Golden Army (1/10) Movie CLIP - Attack of the Tooth Fairies (2008) HD
-    #   5. Rise of the Guardians Trailer 2 - 2012 Movie - Official [HD]
-
-    # Searching by order="relevance"
-    #   1. The Tooth Fairy | Official Trailer (HD) | 20th Century FOX
-    #   2.Tooth Fairy (2010) Trailer #1 | Movieclips Classic Trailers
-    #   3. The Tooth Fairy (2006) - Trailer in 1080p
-    #   4. TOOTH FAIRY THE ROOT OF EVIL Trailer (2020) Horror Movie HD
-    #   5. The Tooth Fairy (2010) HD Movie Trailer
-
-    # Now TMDB does have associated youtube trailers, sometimes, but these
-    # are not always the most viewed trailer...
 
     request = youtube.search().list(
         part="snippet",
@@ -185,6 +157,3 @@ def compare_api_responses():
 
 if __name__ == "__main__":
     compare_api_responses()
-    # print(get_youtube_video_statistics("JqnjK79fGSw"))
-    # print("\n====================\n")
-    # print(search_youtube("The Tooth Fairy"))

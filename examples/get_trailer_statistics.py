@@ -1,6 +1,6 @@
 
 # Python code for getting the statistics of a movie trailer
-
+# TODO: location moved; requires testing
 import os
 import google_auth_oauthlib.flow
 import googleapiclient.discovery

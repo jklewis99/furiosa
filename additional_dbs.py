@@ -5,14 +5,16 @@ import datetime
 def main():
     start = datetime.datetime.now()
     movies_2010s = pd.read_csv("dbs/movies-from-2010s.csv")
-    movies_2010s.dropna(inplace=True) # get rid of movies with null values
-    movies_2010s = movies_2010s.loc[movies_2010s['revenue'] > 0] # get revenues that are greater than 0
+    # remove movies with null values
+    movies_2010s.dropna(inplace=True)
+    # only keep films with revenues that are greater than 0
+    movies_2010s = movies_2010s.loc[movies_2010s['revenue'] > 0]
     num_votes_required = movies_2010s['vote_count'].quantile(0.8)
     watched_movies_2010s = movies_2010s.copy().loc[movies_2010s['vote_count'] >= num_votes_required]
     watched_movies_2010s_tmdb_ids = watched_movies_2010s['tmdb_id'].values
 
     # TODO: better source for reviews, TMDB is limited in these
-    
+
     release_dates = []
     crew = []
     cast = []

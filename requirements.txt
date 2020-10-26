@@ -1,9 +1,6 @@
-PyQt5
-moviepy
-numpy
-opencv-python
---upgrade google-api-python-client
---upgrade google-auth-oauthlib google-auth-httplib2
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
 numpy
 pandas
 textdistance

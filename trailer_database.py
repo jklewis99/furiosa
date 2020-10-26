@@ -10,6 +10,7 @@ from utils.misc import create_directory
 # 1 quota cost per specific video search
 
 def main():
+    # TODO: next iteration start will be 655
     parser = argparse.ArgumentParser(description='Youtube querying based on tmdb film titles')
     parser.add_argument('input', type=str, help="Folder containing \
         movies-from-2010s, cast_2010s, crew_2010s, and release_dates_2010s csv files")
@@ -38,7 +39,7 @@ def main():
     trailers = []
     errors = []
 
-    for i in range(args.iteration_start, args.iteration_start + args.query_limit): # because of query limits, we must parse ths querying across multiple days
+    for i in range(args.iteration_start, min(len(movie_tmdb_ids), args.iteration_start + args.query_limit)): # because of query limits, we must parse ths querying across multiple days
         # we need to generate a list of keywords for our youtube query filtering
         keywords = []
         tmdb_id = movie_tmdb_ids[i]
@@ -73,7 +74,7 @@ def main():
     pd.DataFrame(trailers).to_csv(f"{args.output}/trailers_2010s_{args.iteration_start}.csv", index=False)
     errors_file = open('errors/trailer-database-errors.txt', 'w+')
     errors_file.writelines(errors)
-    print(f"TIME TO PROCESS ({args.query_limit} Movies):", datetime.datetime.now()-start)
+    print(f"TIME TO PROCESS ({min(args.query_limit, len(movie_tmdb_ids)-args.iteration_start)} Movies):", datetime.datetime.now()-start)
 
 def to_rfc3339(release_date):
     '''

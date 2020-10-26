@@ -6,7 +6,6 @@
 
 import os
 
-import google_auth_oauthlib.flow
 import googleapiclient.discovery
 import googleapiclient.errors
 
@@ -23,13 +22,14 @@ def main():
     youtube = googleapiclient.discovery.build(
         api_service_name, api_version) #, credentials=credentials)
 
-    request = youtube.search().list(
+    request = youtube.videos().list(
         part="snippet",
-        q="The Dark Knight"
+        id="JcpWXaA2qeg"
     )
-    response = request.execute()
+    # see videosListResponse for full view of JSON object
+    response = request.execute()['items'][0]['snippet']
 
-    print(response['items']) # how to get the id of the video with this method
+    print(f"{response['title']} - {response['channelTitle']}" )
 
 if __name__ == "__main__":
     main()
