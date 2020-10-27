@@ -1,3 +1,6 @@
+'''
+module containing all functions to make calls to the TMDB API
+'''
 import requests
 import numpy as np
 from api_info.api_variables import TMDB_API_KEY
@@ -5,7 +8,10 @@ from api_info.api_variables import TMDB_API_KEY
 URL = "https://api.themoviedb.org/3/movie/"
 
 def get_by_movie_id(movie_id):
-
+    '''
+    request that will return only budget, title, vote_count, vote_average, revenue, runtime,
+    popularity, and overview 
+    '''
     request = f"{URL}{movie_id}?api_key={TMDB_API_KEY}"
     response = requests.get(request)
     response = response.json()
@@ -48,6 +54,35 @@ def appended_movie_info(movie_id):
         "credits": response['credits'],
         "release_date": release_date_usa
     }
+
+def append_to_response(movie_id, appended_requests):
+    '''
+    method to append to normal query to movie
+
+    Parameters
+    ==========
+    appended_requests:
+        list of strings specifying the requests to append
+
+
+    Returns
+    ==========
+    object containing default movie details and all requested keys
+    '''
+    # Acceptable keys, as specified https://developers.themoviedb.org/3/movies/get-movie-details
+    acceptable_keys = ["account_states", "alternative_titles", "changes", "credits", \
+        "external_ids", "images", "keywords", "release_dates", "videos", "translations", \
+        "recommendations", "similar_movies", "reviews", "lists", "latest", "now_playing", \
+        "popular", "top_rated", "upcoming"]
+    for item in appended_requests:
+        if item not in acceptable_keys:
+            raise ValueError(f"{item} is not an accpetable request to append to response")
+
+    # append_to_response creates a new key for each appended response
+    appended_string = ",".join(appended_requests)
+    request = f"{URL}{movie_id}?api_key={TMDB_API_KEY}&append_to_response={appended_string}"
+    response = requests.get(request)
+    return response.json()
 
 def get_reviews(movie_id):
     # TODO: find different source for reviews, as the TMDB reviews are limited

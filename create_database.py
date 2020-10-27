@@ -12,7 +12,7 @@ def get_year(series_object):
         year = int(year[year.index("(")+1:year.index(")")])
     else:
         year = 0
-    
+
     return year
 
 def update_dataframe(series_object, total):

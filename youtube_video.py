@@ -1,6 +1,13 @@
+'''
+Module containing YouTubeVideo class
+'''
 class YouTubeVideo():
-    def __init__(self, youtube_id, title, channel_title, channel_id, description,
-        release_date, tags, view_count, like_count, dislike_count, comment_count,
+    '''
+    Class to specify parameters for the meaningful features from a YouTube video
+    response
+    '''
+    def __init__(self, youtube_id, title, channel_title, channel_id, description, \
+        release_date, tags, view_count, like_count, dislike_count, comment_count, \
         tmdb_id=None, similarity_score=None):
         self.youtube_id = youtube_id
         self.title = title

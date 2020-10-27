@@ -1,16 +1,20 @@
-import pandas as pd
-from tmdbAPIrequests import appended_movie_info
+'''
+Module to create 3 new databases, specifically crew, cast, and release-dates,
+for films from the 2010s
+'''
+
 import datetime
+import pandas as pd
+from utils.helpers import clean_2010s_dataframe
+from tmdbAPIrequests import appended_movie_info
 
 def main():
+    '''
+    main method that calls the appended_movie_info method from tmdbAPIrequests
+    to generate needed features
+    '''
     start = datetime.datetime.now()
-    movies_2010s = pd.read_csv("dbs/movies-from-2010s.csv")
-    # remove movies with null values
-    movies_2010s.dropna(inplace=True)
-    # only keep films with revenues that are greater than 0
-    movies_2010s = movies_2010s.loc[movies_2010s['revenue'] > 0]
-    num_votes_required = movies_2010s['vote_count'].quantile(0.8)
-    watched_movies_2010s = movies_2010s.copy().loc[movies_2010s['vote_count'] >= num_votes_required]
+    watched_movies_2010s = clean_2010s_dataframe("dbs/movies-from-2010s.csv")
     watched_movies_2010s_tmdb_ids = watched_movies_2010s['tmdb_id'].values
 
     # TODO: better source for reviews, TMDB is limited in these
@@ -18,17 +22,19 @@ def main():
     release_dates = []
     crew = []
     cast = []
-    
+
     for tmdb_id in watched_movies_2010s_tmdb_ids:
         response = appended_movie_info(tmdb_id)
         # reponse contains keys "credits", "reviews", and "release_date"
         release_dates.append(update_date(response['release_date'], tmdb_id))
         cast.extend(update_credits(response['credits']['cast'], tmdb_id))
         crew.extend(update_credits(response['credits']['crew'], tmdb_id))
-    cast_2010s = pd.DataFrame(cast)[['tmdb_id', 'name', 'character', 'id', 'cast_id', 'credit_id', 'order', 'gender']]
+    cast_2010s = pd.DataFrame(cast)[
+        ['tmdb_id', 'name', 'character', 'id', 'cast_id', 'credit_id', 'order', 'gender']]
     cast_2010s.rename(columns={'id': 'tmdb_person_id', 'name': 'actor_name'}, inplace=True)
     cast_2010s.to_csv("cast_2010s.csv", index=False)
-    crew_2010s = pd.DataFrame(crew)[['tmdb_id', 'name', 'job', 'department', 'id', 'credit_id', 'gender']]
+    crew_2010s = pd.DataFrame(crew)[
+        ['tmdb_id', 'name', 'job', 'department', 'id', 'credit_id', 'gender']]
     crew_2010s.rename(columns={'id': 'tmdb_person_id'}, inplace=True)
     crew_2010s.to_csv("crew_2010s.csv", index=False)
     pd.DataFrame(release_dates).to_csv("release_dates_2010s.csv", index=False)
@@ -74,8 +80,8 @@ def update_date(release_date, tmdb_id):
         return {
             "tmdb_id": tmdb_id,
             "weekday_released": "",
-            "month_released": 0, 
-            "day_released": 0, 
+            "month_released": 0,
+            "day_released": 0,
             "year_released": 0,
         }
     split_date = [int(x) for x in release_date[:10].split("-")]
@@ -87,6 +93,6 @@ def update_date(release_date, tmdb_id):
         "day_released": date.day, 
         "year_released": date.year,
         }
-    
+
 if __name__ == "__main__":
     main()
