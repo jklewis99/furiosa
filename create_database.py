@@ -50,7 +50,7 @@ def main():
     movies_2010s = movies.copy().loc[movies['year'] >= 2010]
     total = movies_2010s.shape[0]
     movies_2010s = movies_2010s.apply(lambda x: update_dataframe(x, total), axis=1)
-    movies_2010s.to_csv("movies-from-2010s.csv", index=False)
+    movies_2010s.to_csv("movies_from_2010s.csv", index=False)
     print("Time to request and build:", datetime.datetime.now() - start)
 
 if __name__ == '__main__':

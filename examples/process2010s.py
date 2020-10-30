@@ -1,7 +1,7 @@
 # TODO: location moved; requires testing
 import pandas as pd 
 
-movies_2010s = pd.read_csv('dbs/movies-from-2010s.csv')
+movies_2010s = pd.read_csv('dbs/movies_from_2010s.csv')
 movies_2010s.dropna(inplace=True) # get rid of movies without budget information
 
 # I want to use the 90th percentile for the number of votes required

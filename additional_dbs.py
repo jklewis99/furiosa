@@ -14,7 +14,7 @@ def main():
     to generate needed features
     '''
     start = datetime.datetime.now()
-    watched_movies_2010s = clean_2010s_dataframe("dbs/movies-from-2010s.csv")
+    watched_movies_2010s = clean_2010s_dataframe("dbs/movies_from_2010s.csv")
     watched_movies_2010s_tmdb_ids = watched_movies_2010s['tmdb_id'].values
 
     # TODO: better source for reviews, TMDB is limited in these

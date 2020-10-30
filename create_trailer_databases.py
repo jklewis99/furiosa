@@ -33,7 +33,7 @@ def main():
     args = parser.parse_args()
 
     start = datetime.datetime.now()
-    watched_movies_2010s = clean_2010s_dataframe(os.path.join(args.input, "movies-from-2010s.csv"))    
+    watched_movies_2010s = clean_2010s_dataframe(os.path.join(args.input, "movies_from_2010s.csv"))    
     movie_tmdb_ids = watched_movies_2010s['tmdb_id'].values
     movie_descriptions = watched_movies_2010s['overview'].values.tolist()
     watched_movies_2010s.set_index('tmdb_id', inplace=True)
