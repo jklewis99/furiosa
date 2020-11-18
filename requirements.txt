@@ -3,6 +3,7 @@ google-auth-oauthlib
 google-auth-httplib2
 numpy
 pandas
-textdistance
 plotly
+tensorflow
+textdistance
 wordcloud
