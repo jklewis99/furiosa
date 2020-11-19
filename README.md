@@ -27,6 +27,8 @@ source [ENV_NAME]/bin/activate
 ```
 conda update conda
 conda create -n [ENV_NAME]
+conda activate [ENV_NAME]
+conda install pip # install pip to allow easy requirements.txt install
 ```
 #### 3. Install the requirements:
 ```
@@ -59,3 +61,14 @@ This should return the following:
 ```
 Toy Story 3: Trailer - Walt Disney Studios
 ```
+
+## Data Overview
+Much of the visualization and evaluation of the data itself can be found in the [`notebooks`](/notebooks) folder. Additionally, many graphs that represent the significance of each feature and some other visual data representations are available in the [`correlations`](/figures/correlations) folder in [`figures`](/figures)
+
+## Network Success
+The following machine learning models were used in this repository:
+- Neural Networks (Regression)
+- Support Vector Machines (Regression)
+- Linear Regression
+- Decision Tree (Regression)
+- Random Forest (Regression)
