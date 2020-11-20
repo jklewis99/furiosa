@@ -2,7 +2,7 @@
 api_info/
 __pycache__/
 .mypy_cache/
-
+weights/automated/
 # for local testing
 garbage.py
 

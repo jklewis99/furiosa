@@ -4,3 +4,8 @@ in other words, get time stamp
 production company itself vs fandango or 
 
 instagram tv relevant?
+
+keras normalization
+even on one-hot (not) encoded features
+
+graphs for genre distribution

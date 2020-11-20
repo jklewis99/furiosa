@@ -102,7 +102,7 @@ def scale_data(x_train, x_test, y_train, y_test):
 
     return x_train, x_test, y_train, y_test, scalar_x, scalar_y
 
-def plot_history(results, layers, loss, norm=""):
+def plot_history(results, layers, loss, norm="", show_fig=False):
     '''
     plot the model's history during training
     '''
@@ -113,8 +113,9 @@ def plot_history(results, layers, loss, norm=""):
     plt.ylabel('Mean Absolute Error', fontsize=18)
     plt.xlabel('Epoch', fontsize=18)
     plt.legend(['train', 'test'], loc='upper right')
-    plt.savefig(f"figures/history{norm}-{stringify_model(layers)}-1.png")
-    plt.show()
+    plt.savefig(f"figures/automated/history{norm}-{stringify_model(layers)}-1.png")
+    if show_fig:
+        plt.show()
 
 def plot_predictions(predictions, actual, layers, norm="", best=""):
     '''
@@ -156,7 +157,7 @@ def stringify_model(layers):
     '''
     return "-".join(map(str, layers))
 
-def train(layers, loss_function):
+def train(layers, loss_function, show_preds=False, scale_input=True):
     '''
     method for training FuriosaNet
 
@@ -167,22 +168,24 @@ def train(layers, loss_function):
     '''
 
     # generate data with scaled input
-    x_train, x_test, y_train, y_test, _, scalar_y, dataset = generate_data("dbs/data_2010s.csv", scale_input=True)
+    x_train, x_test, y_train, y_test, _, scalar_y, dataset = generate_data("dbs/data_2010s.csv", scale_input=scale_input)
     # define normalization string for specifying saved filed
-    normalization = "-norm"
+    normalization = ""
+    if scale_input:
+        normalization = "-norm"
     # define the layers of the model, excluding the output layer
     layers = [x_train.shape[1]] + layers
     # call the function that will build the model
     model = build_model(layers, loss_function=loss_function)
     # define what weights we want to save and how we want to save them
     callback = ModelCheckpoint(
-        filepath=f"weights/nn{normalization}-{stringify_model(layers)}-1-weights.h5",
+        filepath=f"weights/automated/nn{normalization}-{stringify_model(layers)}-1-weights.h5",
         verbose=1,
         save_best_only=True,
         monitor="val_" + loss_function,
         save_weights_only=True
         )
-    
+
     # train the network
     results = model.fit(
         x_train, y_train,
@@ -194,10 +197,12 @@ def train(layers, loss_function):
 
     # plot the history of the model based on the loss_function
     plot_history(results, layers, loss_function, norm=normalization)
-    # get the rescaled predictions
-    predictions = scalar_y.inverse_transform(np.array([val[0] for val in model.predict(x_test)]))
-    # plot the predictions and get the r-squared value of the model
-    plot_predictions(predictions, scalar_y.inverse_transform(y_test), layers, norm=normalization)
+
+    if show_preds:
+        # get the rescaled predictions
+        predictions = scalar_y.inverse_transform(np.array([val[0] for val in model.predict(x_test)]))
+        # plot the predictions and get the r-squared value of the model
+        plot_predictions(predictions, scalar_y.inverse_transform(y_test), layers, norm=normalization)
 
 def test(weights_file, layers, loss_function):
     x_train, x_test, y_train, y_test, scalar_x, scalar_y, dataset = generate_data("dbs/data_2010s.csv", scale_input=True)
@@ -229,9 +234,9 @@ def evaluate(metric, weights_folder, save_table=True, create_fig=False):
     for weights_file in weights_files:
         layers = get_layers_from_file(weights_file)
         model = build_model(layers)
-        model.load_weights(weights_file)
+        model.load_weights(os.path.join(weights_folder, weights_file))
         predictions = scalar_y.inverse_transform(np.array([val[0] for val in model.predict(x_test)]))
-        r2 = metric_functions[metric](y_test, predictions)
+        r2 = metric_functions[metric](scalar_y.inverse_transform(y_test), predictions)
         if create_fig:
             # TODO: plot get some plottable points to be layers on one graph
             print()
@@ -241,7 +246,7 @@ def evaluate(metric, weights_folder, save_table=True, create_fig=False):
     if create_fig:
         print()
     if save_table:
-        pd.DataFrame(models).to_csv("model-evaluation.csv", index=False)
+        pd.DataFrame.from_dict(models, orient='index', columns=["r-squared"]).to_csv("model-evaluation.csv")
     else:
         print(f"{'Model':^40s}| {metric}")
         for k in models:
