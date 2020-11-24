@@ -1,13 +1,9 @@
 '''
-module containing all functions related to a nerual network to predict revenue with
-regression. Training, testing, and evaluating models are methods in this module.
+support vector machine for regression
 '''
 
-import argparse
-import os
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from sklearn.svm import SVR
 from sklearn.metrics import r2_score
 from utils.misc import plot_predictions, inverse_transform, create_interactive_plot, create_df
