@@ -1,25 +1,29 @@
+'''
+module containing all functions related to a nerual network to predict revenue with
+regression. Training, testing, and evaluating models are methods in this module.
+'''
+
 import argparse
+import os
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
-import tensorflow as tf
-
+from utils.misc import stringify_model, plot_history, plot_predictions, inverse_transform
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import Input
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import LayerNormalization
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.optimizers import SGD
-from tensorflow.python.keras.layers.core import Activation
 from tensorflow.random import set_seed
 
 set_seed(18)
 
-def neural_network(layers=None):
+def neural_network(layers):
+    '''
+    build multilayer perceptron based on `layers`
+    '''
     model = Sequential()
     model.add(Input(shape=(layers[0],)))
     for number_nodes in layers[1:]:
@@ -43,15 +47,17 @@ def generate_data(csv, split=(80,20), output_index=-1, scale_input=True):
     `split`:
         default (80, 20); tuple specifying the percentage of data for
         training and testing, respectively
+
     `output_index`:
         default -1; location in the dataset which is the value to predict
+
     `scale_input`:
         default True; boolean declaring whether to scale data
 
     Return
     ==========
-    (x_train, x_test, y_train, y_test, scalar_x, scalar_y, dataset)
-    numpy arrays: x_train, x_test, y_train, y_test;
+    (x_train, x_test, y_train, y_test, scalar_x, scalar_y, dataset, test_indices)
+    numpy arrays: x_train, x_test, y_train, y_test, test_indices;
     Scalar objects: scalar_x, scalar_y
     Pandas DataFrame: dataset
     '''
@@ -62,12 +68,12 @@ def generate_data(csv, split=(80,20), output_index=-1, scale_input=True):
 
     features = data.iloc[:, :output_index].values
     output = data.iloc[:, output_index].values
-
-    x_train, x_test, y_train, y_test = train_test_split(features, output, test_size=split[1]/100, random_state=18)
+    indices = np.arange(len(output))
+    x_train, x_test, y_train, y_test, _, test_indices = train_test_split(features, output, indices, test_size=split[1]/100, random_state=18)
 
     if scale_input:
         x_train, x_test, y_train, y_test, scalar_x, scalar_y = scale_data(x_train, x_test, y_train, y_test)
-    return x_train, x_test, y_train, y_test, scalar_x, scalar_y, dataset
+    return x_train, x_test, y_train, y_test, scalar_x, scalar_y, dataset, test_indices
 
 def scale_data(x_train, x_test, y_train, y_test):
     '''
@@ -79,16 +85,19 @@ def scale_data(x_train, x_test, y_train, y_test):
     ==========
     `x_train`:
         numpy array of features for all samples in training data
+
     `x_test`:
         numpy array of features for all outputs in testing data
+
     `y_train`:
         numpy array of outputs for all samples in training data
+
     `y_test`:
         numpy array of outputs for all samples in testing data
 
     Return
     ==========
-    (x_train, x_test, y_train, y_test, scalar_x, scalar_y)
+    `(x_train, x_test, y_train, y_test, scalar_x, scalar_y)`:
     tuple of the scaled x_train, transformed x_test, sacled y_train,
     transformed y_test, saclar used for features, scalar used for outputs
     '''
@@ -102,36 +111,10 @@ def scale_data(x_train, x_test, y_train, y_test):
 
     return x_train, x_test, y_train, y_test, scalar_x, scalar_y
 
-def plot_history(results, layers, loss, norm="", show_fig=False):
-    '''
-    plot the model's history during training
-    '''
-    plt.figure(figsize=(10, 8))
-    plt.plot(np.array(results.history[loss])[15:])
-    plt.plot(np.array(results.history["val_"+ loss])[15:])
-    plt.title('MAE on training and testing data', fontsize=24)
-    plt.ylabel('Mean Absolute Error', fontsize=18)
-    plt.xlabel('Epoch', fontsize=18)
-    plt.legend(['train', 'test'], loc='upper right')
-    plt.savefig(f"figures/automated/history{norm}-{stringify_model(layers)}-1.png")
-    if show_fig:
-        plt.show()
-
-def plot_predictions(predictions, actual, layers, norm="", best=""):
-    '''
-    plot the model's predictions
-    '''
-    plt.figure(figsize=(8, 8))
-    plt.scatter(predictions, actual)
-    plt.title('Actual vs Predicted', fontsize=24)
-    plt.ylabel('Actual Value', fontsize=18)
-    plt.xlabel('Predicted Value', fontsize=18)
-    r_squared = r2_score(actual, predictions)
-    plt.annotate(f"r^2 value = {r_squared:.3f}", (2, 0.9*np.max(actual)))
-    plt.savefig(f"figures/{best}predictions{norm}-{stringify_model(layers)}-1.png")
-    plt.show()
-
 def build_model(layers, loss_function="mean_squared_error"):
+    '''
+    top level function to build MLP and plot the model parameters
+    '''
     model = neural_network(layers)
     model.compile(loss=loss_function, optimizer="adam", metrics=[loss_function])
     print(model.summary())
@@ -142,20 +125,10 @@ def get_layers_from_file(path):
     return the layers as a list of integers based on the `path`
     '''
     # all weights are formatted in "path/to/nn-{norm-}27-{H1}-{H2...}-1-weights.h5"
-    # so we split by the path, then split by "-" and only take the layers, then remove the output layer
+    # so we split by the path, then split by "-" and only take the layers, then remove the 
+    # output layer
     layers = [int(val) for val in path.split("/")[-1].split("-") if val.isdigit()][:-1]
     return layers
-
-def stringify_model(layers):
-    '''
-    convert a list of the layers into a string for saving
-
-    Parameters
-    ==========
-    `layers`:
-        list of specified number of neurons per layer
-    '''
-    return "-".join(map(str, layers))
 
 def train(layers, loss_function, show_preds=False, scale_input=True):
     '''
@@ -168,7 +141,7 @@ def train(layers, loss_function, show_preds=False, scale_input=True):
     '''
 
     # generate data with scaled input
-    x_train, x_test, y_train, y_test, _, scalar_y, dataset = generate_data("dbs/data_2010s.csv", scale_input=scale_input)
+    x_train, x_test, y_train, y_test, _, scalar_y, dataset, _ = generate_data("dbs/data_2010s.csv", scale_input=scale_input)
     # define normalization string for specifying saved filed
     normalization = ""
     if scale_input:
@@ -200,16 +173,42 @@ def train(layers, loss_function, show_preds=False, scale_input=True):
 
     if show_preds:
         # get the rescaled predictions
-        predictions = scalar_y.inverse_transform(np.array([val[0] for val in model.predict(x_test)]))
+        predictions, actual_values = inverse_transform(model.predict(x_test), y_test, scalar_y)
         # plot the predictions and get the r-squared value of the model
-        plot_predictions(predictions, scalar_y.inverse_transform(y_test), layers, norm=normalization)
+        r_squared = r2_score(predictions, actual_values)
+        plot_predictions(predictions, actual_values, r_squared, layers=layers, norm=normalization)
 
-def test(weights_file, layers, loss_function):
-    x_train, x_test, y_train, y_test, scalar_x, scalar_y, dataset = generate_data("dbs/data_2010s.csv", scale_input=True)
+def test(weights_file, layers, data_file="dbs/data_2010s.csv", show_fig=True, scale_input=True):
+    '''
+    test a model with specified `layers` architecture using the `weights_file`
+
+    Parameters
+    ==========
+    `weights_file`:
+        path to the .h5 file containing the pretrained weights
+
+    `layers`:
+        list of integer values specifying the number of nodes at the each hidden layer
+        except the final layer
+
+    Keyword Args:
+    ==========
+    `show_fig`:
+        default True; display graph of actual values vs predictions
+
+    Returns
+    ==========
+    (predictions, actual_values, dataset, test_indices)
+    '''
+    _, x_test, _, y_test, _, scalar_y, dataset, test_indices = generate_data(
+        data_file, scale_input=scale_input)
     model = build_model(layers)
     model.load_weights(weights_file)
-    predictions = scalar_y.inverse_transform(np.array([val[0] for val in model.predict(x_test)]))
-    plot_predictions(predictions, scalar_y.inverse_transform(y_test), layers, best="best-")
+    predictions, actual_values = inverse_transform(model.predict(x_test), y_test, scalar_y)
+    r_squared = r2_score(predictions, actual_values)
+    plot_predictions(
+        predictions, actual_values, r_squared, layers=layers, best="best-", show_fig=show_fig)
+    return predictions, actual_values, dataset, test_indices
 
 def evaluate(metric, weights_folder, save_table=True, create_fig=False):
     '''
@@ -220,6 +219,7 @@ def evaluate(metric, weights_folder, save_table=True, create_fig=False):
     ==========
     `metric`:
         metric to evaluate models
+
     `weights_folder`:
         path to fodler containing the weights of model which are meant to be modeled.
     '''
@@ -227,7 +227,7 @@ def evaluate(metric, weights_folder, save_table=True, create_fig=False):
         "r-squared": r2_score,
     }
     predictions = None
-    _, x_test, _, y_test, _, scalar_y, dataset = generate_data("dbs/data_2010s.csv", scale_input=True)
+    _, x_test, _, y_test, _, scalar_y, dataset, _ = generate_data("dbs/data_2010s.csv", scale_input=True)
 
     models = dict()
     weights_files = [weights for weights in os.listdir(weights_folder)]
@@ -235,8 +235,8 @@ def evaluate(metric, weights_folder, save_table=True, create_fig=False):
         layers = get_layers_from_file(weights_file)
         model = build_model(layers)
         model.load_weights(os.path.join(weights_folder, weights_file))
-        predictions = scalar_y.inverse_transform(np.array([val[0] for val in model.predict(x_test)]))
-        r2 = metric_functions[metric](scalar_y.inverse_transform(y_test), predictions)
+        predictions, actual_values = inverse_transform(model.predict(x_test), y_test, scalar_y)
+        r2 = metric_functions[metric](actual_values, predictions)
         if create_fig:
             # TODO: plot get some plottable points to be layers on one graph
             print()
@@ -246,7 +246,8 @@ def evaluate(metric, weights_folder, save_table=True, create_fig=False):
     if create_fig:
         print()
     if save_table:
-        pd.DataFrame.from_dict(models, orient='index', columns=["r-squared"]).to_csv("model-evaluation.csv")
+        pd.DataFrame.from_dict(
+            models, orient='index', columns=["r-squared"]).to_csv("model-evaluation.csv")
     else:
         print(f"{'Model':^40s}| {metric}")
         for k in models:
