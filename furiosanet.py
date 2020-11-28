@@ -178,7 +178,7 @@ def train(layers, loss_function, show_preds=False, scale_input=True):
         r_squared = r2_score(predictions, actual_values)
         plot_predictions(predictions, actual_values, r_squared, layers=layers, norm=normalization)
 
-def test(weights_file, layers, data_file="dbs/data_2010s.csv", show_fig=True, scale_input=True):
+def test(weights_file, layers, data_file="dbs/data_2010s.csv", create_fig=True, show_fig=True, scale_input=True):
     '''
     test a model with specified `layers` architecture using the `weights_file`
 
@@ -206,8 +206,9 @@ def test(weights_file, layers, data_file="dbs/data_2010s.csv", show_fig=True, sc
     model.load_weights(weights_file)
     predictions, actual_values = inverse_transform(model.predict(x_test), y_test, scalar_y)
     r_squared = r2_score(predictions, actual_values)
+
     plot_predictions(
-        predictions, actual_values, r_squared, layers=layers, best="best-", show_fig=show_fig)
+        predictions, actual_values, r_squared, layers=layers, best="best-", save_fig=False, show_fig=show_fig)
     return predictions, actual_values, dataset, test_indices
 
 def evaluate(metric, weights_folder, save_table=True, create_fig=False):
@@ -257,9 +258,8 @@ def evaluate(metric, weights_folder, save_table=True, create_fig=False):
 def main():
     parser = argparse.ArgumentParser(description='FuriosaNet model')
     parser.add_argument(
-        '-mode',
+        'mode',
         choices=['train', 'test', 'evaluate'],
-        default='train',
         help="Mode in which the model should be run"
         )
     parser.add_argument(
@@ -295,7 +295,7 @@ def main():
 
     if args.mode == 'test':
         layers = get_layers_from_file(args.weights)
-        test(args.weights, layers, args.loss)
+        test(args.weights, layers)
     elif args.mode == 'evaluate':
         evaluate(args.by, args.weightsfolder)
     else:
