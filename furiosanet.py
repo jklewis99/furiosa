@@ -8,10 +8,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from utils.misc import stringify_model, plot_history, plot_predictions, inverse_transform
+from utils.misc import stringify_model, plot_history, plot_predictions, inverse_transform, generate_data
 from sklearn.metrics import r2_score
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 from tensorflow.keras import Input
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.layers import Dense
@@ -30,86 +28,6 @@ def neural_network(layers):
         model.add(Dense(number_nodes, kernel_initializer="normal", activation="relu"))
     model.add(Dense(1, activation="linear")) # one node for regression
     return model
-
-def generate_data(csv, split=(80,20), output_index=-1, scale_input=True):
-    '''
-    read data from the specified `csv` file and normalize data, and
-    split into training features, testing features, training labels,
-    and testing labels
-
-    Parameters
-    ==========
-    `csv`:
-        string specifying the path to the file containing data
-
-    Keyword Args
-    ==========
-    `split`:
-        default (80, 20); tuple specifying the percentage of data for
-        training and testing, respectively
-
-    `output_index`:
-        default -1; location in the dataset which is the value to predict
-
-    `scale_input`:
-        default True; boolean declaring whether to scale data
-
-    Return
-    ==========
-    (x_train, x_test, y_train, y_test, scalar_x, scalar_y, dataset, test_indices)
-    numpy arrays: x_train, x_test, y_train, y_test, test_indices;
-    Scalar objects: scalar_x, scalar_y
-    Pandas DataFrame: dataset
-    '''
-    dataset = pd.read_csv(csv)
-    data = dataset.drop(columns=['title', 'tmdb_id', 'year']).astype('float')
-    scalar_x = None
-    scalar_y = None
-
-    features = data.iloc[:, :output_index].values
-    output = data.iloc[:, output_index].values
-    indices = np.arange(len(output))
-    x_train, x_test, y_train, y_test, _, test_indices = train_test_split(features, output, indices, test_size=split[1]/100, random_state=18)
-
-    if scale_input:
-        x_train, x_test, y_train, y_test, scalar_x, scalar_y = scale_data(x_train, x_test, y_train, y_test)
-    return x_train, x_test, y_train, y_test, scalar_x, scalar_y, dataset, test_indices
-
-def scale_data(x_train, x_test, y_train, y_test):
-    '''
-    Uses Standard Scalar, which sets the mean to 0 and standard deviation to 1, to
-    scale the inputs. Training values will be fit and transformed, and the test data
-    will be transformed.
-
-    Parameters
-    ==========
-    `x_train`:
-        numpy array of features for all samples in training data
-
-    `x_test`:
-        numpy array of features for all outputs in testing data
-
-    `y_train`:
-        numpy array of outputs for all samples in training data
-
-    `y_test`:
-        numpy array of outputs for all samples in testing data
-
-    Return
-    ==========
-    `(x_train, x_test, y_train, y_test, scalar_x, scalar_y)`:
-    tuple of the scaled x_train, transformed x_test, sacled y_train,
-    transformed y_test, saclar used for features, scalar used for outputs
-    '''
-    scalar_x = StandardScaler() # need to scale our data (I think)
-    scalar_y = StandardScaler() # need to scale our data (I think)
-
-    x_train = scalar_x.fit_transform(x_train)
-    y_train = scalar_y.fit_transform(y_train.reshape(-1, 1))
-    x_test = scalar_x.transform(x_test)
-    y_test = scalar_y.transform(y_test.reshape(-1, 1))
-
-    return x_train, x_test, y_train, y_test, scalar_x, scalar_y
 
 def build_model(layers, loss_function="mean_squared_error"):
     '''
