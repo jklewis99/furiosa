@@ -19,7 +19,8 @@ def create_directory(path):
         os.makedirs(path)
     return path
 
-def generate_data(csv, split=(80,20), output_index=-1, scale_input=True):
+def generate_data(csv, drop_features=['title', 'tmdb_id', 'year'],
+                  split=(80,20), output_index=-1, scale_input=True):
     '''
     read data from the specified `csv` file and normalize data, and
     split into training features, testing features, training labels,
@@ -32,6 +33,9 @@ def generate_data(csv, split=(80,20), output_index=-1, scale_input=True):
 
     Keyword Args
     ==========
+    `drop_features`:
+        features to drop
+
     `split`:
         default (80, 20); tuple specifying the percentage of data for
         training and testing, respectively
@@ -50,7 +54,7 @@ def generate_data(csv, split=(80,20), output_index=-1, scale_input=True):
     Pandas DataFrame: dataset
     '''
     dataset = pd.read_csv(csv)
-    data = dataset.drop(columns=['title', 'tmdb_id', 'year']).astype('float')
+    data = dataset.drop(columns=drop_features).astype('float')
     scalar_x = None
     scalar_y = None
 
@@ -86,8 +90,8 @@ def scale_data(x_train, x_test, y_train, y_test):
     Return
     ==========
     `(x_train, x_test, y_train, y_test, scalar_x, scalar_y)`:
-    tuple of the scaled x_train, transformed x_test, sacled y_train,
-    transformed y_test, saclar used for features, scalar used for outputs
+    tuple of the scaled x_train, transformed x_test, scaled y_train,
+    transformed y_test, scalar used for features, scalar used for outputs
     '''
     scalar_x = StandardScaler() # need to scale our data (I think)
     scalar_y = StandardScaler() # need to scale our data (I think)
@@ -110,7 +114,7 @@ def stringify_model(layers):
     '''
     return "-".join(map(str, layers))
 
-def plot_history(results, layers, loss, norm="", save_fig=FIGURES_PATH, show_fig=False):
+def plot_history(results, layers, loss, output_size=1, norm="", save_fig=FIGURES_PATH, show_fig=False):
     '''
     plot the model's history during training
 
@@ -144,11 +148,11 @@ def plot_history(results, layers, loss, norm="", save_fig=FIGURES_PATH, show_fig
     plt.xlabel('Epoch', fontsize=18)
     plt.legend(['train', 'test'], loc='upper right')
     if save_fig:
-        plt.savefig(f"{save_fig}/history{norm}-{loss}-{stringify_model(layers)}-1.png")
+        plt.savefig(f"{save_fig}/history{norm}-{loss}-{stringify_model(layers)}-{output_size}.png")
     if show_fig:
         plt.show()
 
-def plot_predictions(predictions, actual, r_squared, model=None, layers=None,
+def plot_predictions(predictions, actual, r_squared, model=None, layers=None, output_size=1,
                      norm="", best="", save_fig=FIGURES_PATH, show_fig=False):
     '''
     plot predicitions to a graph and save the image
@@ -188,7 +192,7 @@ def plot_predictions(predictions, actual, r_squared, model=None, layers=None,
     '''
     if layers:
         file_name = f"{best}predictions{norm}-{stringify_model(layers)}-1"
-        model = "MLP " + stringify_model(layers) + "-1"
+        model = "MLP " + stringify_model(layers) + f"-{output_size}"
     else:
         file_name = f"{model}-predictions"
     plt.figure(figsize=(8, 8))
@@ -267,7 +271,7 @@ def create_interactive_plot(graph_data, model=None, layers=None, save_fig=FIGURE
                     x="predicted",
                     y="revenue",
                     hover_name="title",
-                    hover_data=["predicted", "revenue", "difference", "percent_off"],
+                    hover_data=["predicted__", "revenue____", "difference_", "percent_off"],
                     title=f"Actual Revenue and Predicted Revenue for {model}",
                     width=800,
                     height=800)
@@ -279,9 +283,9 @@ def create_interactive_plot(graph_data, model=None, layers=None, save_fig=FIGURE
                     hoverlabel=dict(
                             bgcolor="skyblue",
                             font_size=16,
-                            font_family="Rockwell"))
+                            font_family="Consolas"))
 
-    save_plot(fig, f"{model}-predicitons", path=os.path.join(FIGURES_PATH, "interactive"), interactive=True)
+    save_plot(fig, f"{model}-predictions", path=os.path.join(FIGURES_PATH, "interactive"), interactive=True)
 
 def inverse_transform(predictions, actual, scalar):
     '''
@@ -320,8 +324,11 @@ def create_df(predictions, dataset, test_indices):
     '''
     test_data = dataset.copy().iloc[test_indices, :]
     test_data["predicted"] = predictions.T.astype("int64")
-    test_data["difference"] = test_data.apply(get_difference, axis=1)
+    test_data["difference_"] = test_data.apply(get_difference, axis=1)
     test_data["percent_off"] = test_data.apply(get_percent_off, axis=1)
+    test_data["predicted__"] = test_data["predicted"].apply(convert_millions)
+    test_data["revenue____"] = test_data["revenue"].apply(convert_millions)
+    test_data["difference_"] = test_data["difference_"].apply(convert_abs_millions)
     return test_data
 
 def get_difference(series_object):
@@ -331,9 +338,35 @@ def get_difference(series_object):
     revenue = series_object["revenue"]
     return revenue - pred
 
+def convert_abs_millions(val):
+    mil = abs(val /(10**6))
+    if mil >=  1000:
+        val_str = f"${mil/1000:.3f} Billion"
+    elif mil > 1:
+        val_str = f"${mil:.0f} Million"
+    else:
+        val_str = f"${mil*1000:.0f} Thousand"
+    return f"{val_str:>20}"
+
+def convert_millions(val):
+    mil = val /(10**6)
+    if mil >=  1000:
+        val_str = f"${mil/1000:.3f} Billion"
+    elif mil >= 1:
+        val_str = f"${mil:.0f} Million"
+    elif mil >= 0:
+        val_str = f"${mil*1000:.0f} Thousand"
+    elif mil > -1:
+        val_str = f"-${mil*-1000:.0f} Thousand"
+    elif mil > -1000:
+        val_str = f"-${-1*mil:.0f} Million"
+    else:
+        val_str = f"${mil/-1000:.3f} Billion"
+    return f"{val_str:>20}"
+
 def get_percent_off(series_object):
     '''
     '''
-    diff = series_object["difference"]
+    diff = series_object["difference_"]
     revenue = series_object["revenue"]
-    return abs(round(diff / revenue, 2)) * 100
+    return f"{100*(diff / revenue):19.2f}%"

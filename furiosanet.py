@@ -8,7 +8,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from utils.misc import stringify_model, plot_history, plot_predictions, inverse_transform, generate_data
+from utils.misc import stringify_model, plot_history, plot_predictions, inverse_transform, generate_data, create_df, create_interactive_plot
 from sklearn.metrics import r2_score
 from tensorflow.keras import Input
 from tensorflow.keras.callbacks import ModelCheckpoint
@@ -25,7 +25,8 @@ def neural_network(layers):
     model = Sequential()
     model.add(Input(shape=(layers[0],)))
     for number_nodes in layers[1:]:
-        model.add(Dense(number_nodes, kernel_initializer="normal", activation="relu"))
+        model.add(Dense(number_nodes, activation="relu"))
+        # model.add(Dense(number_nodes, kernel_initializer="normal", activation="relu"))
     model.add(Dense(1, activation="linear")) # one node for regression
     return model
 
@@ -60,6 +61,8 @@ def train(layers, loss_function, show_preds=False, scale_input=True):
 
     # generate data with scaled input
     x_train, x_test, y_train, y_test, _, scalar_y, dataset, _ = generate_data("dbs/data_2010s.csv", scale_input=scale_input)
+    # x_train, x_test, y_train, y_test, _, scalar_y, dataset, _ = generate_data(
+    #         "dbs/data_2010s.csv", drop_features=['title', 'tmdb_id', 'year', 'view_count', 'like_count', 'dislike_count', 'comment_count'])
     # define normalization string for specifying saved filed
     normalization = ""
     if scale_input:
@@ -70,7 +73,7 @@ def train(layers, loss_function, show_preds=False, scale_input=True):
     model = build_model(layers, loss_function=loss_function)
     # define what weights we want to save and how we want to save them
     callback = ModelCheckpoint(
-        filepath=f"weights/automated/nn{normalization}-{stringify_model(layers)}-1-weights.h5",
+        filepath=f"weights/nn{normalization}-{loss_function}-{stringify_model(layers)}-1-weights.h5",
         verbose=1,
         save_best_only=True,
         monitor="val_" + loss_function,
@@ -81,7 +84,7 @@ def train(layers, loss_function, show_preds=False, scale_input=True):
     results = model.fit(
         x_train, y_train,
         batch_size=50,
-        epochs=500,
+        epochs=100,
         validation_data=(x_test, y_test),
         callbacks=[callback]
         )
@@ -120,13 +123,19 @@ def test(weights_file, layers, data_file="dbs/data_2010s.csv", create_fig=True, 
     '''
     _, x_test, _, y_test, _, scalar_y, dataset, test_indices = generate_data(
         data_file, scale_input=scale_input)
+    # _, x_test, _, y_test, _, scalar_y, dataset, _ = generate_data(
+    #         "dbs/data_2010s.csv", drop_features=['title', 'tmdb_id', 'year', 'view_count', 'like_count', 'dislike_count', 'comment_count'])
     model = build_model(layers)
     model.load_weights(weights_file)
     predictions, actual_values = inverse_transform(model.predict(x_test), y_test, scalar_y)
     r_squared = r2_score(predictions, actual_values)
 
-    plot_predictions(
-        predictions, actual_values, r_squared, layers=layers, best="best-", save_fig=False, show_fig=show_fig)
+    if create_fig:
+        plot_predictions(
+            predictions, actual_values, r_squared, layers=layers, best="best-", save_fig=True, show_fig=show_fig)
+        df = create_df(predictions, dataset, test_indices)
+        create_interactive_plot(df, model=layers)
+
     return predictions, actual_values, dataset, test_indices
 
 def evaluate(metric, weights_folder, save_table=True, create_fig=False):
@@ -194,8 +203,8 @@ def main():
     parser.add_argument(
         '-loss',
         type=str,
-        default="mean_absolute_error",
-        help="loss function to monitor. Default: mean_absolute_error"
+        default="mean_squared_error",
+        help="loss function to monitor. Default: mean_squared_error"
         )
     parser.add_argument(
         '-weightsfolder',
